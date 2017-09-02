@@ -1,4 +1,5 @@
 # EnvironmentalSeismology-Classroom
 Material de la Clase de Sismología Ambiental Centro de Geociencias UNAM
 
-Prueba Nueva clave SSH
+Prueba Nueva clave SSH 
+Add git remote -v
