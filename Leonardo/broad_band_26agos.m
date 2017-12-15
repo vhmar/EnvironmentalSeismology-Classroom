@@ -10,14 +10,12 @@ t=datevec(t);
 %%% este evento inicio el 26 de agosto a las 21:00:00 y terminó el 27
 %%% agosto a las 00:35:44.4200, por lo que es de menor duración que los
 %%% otros
-%delta de tiempo, el espacio de t que hay entre dato y dato
-dt= 0.010;
-%muestras por segundo (sample per second)
-sps=1/0.01;
+dt=(t(2,6));
+sps=1/dt;
 %vector de tiempo
-t=[0:dt:(length(t)-1)*dt]';
+t=[0:dt:(length(t)-1)*dt]'*(1/3600);
 %tiempo de muestreo 
-time=length(t)*dt;
+time=length(t);
 %el evento inicio las cuentas a las 21 horas, 0 minutos y 0 segundos
 %el evento termino a las 24 horas, 59 minutos, 59.9960 segundos
 %%%ahora se construira el vector de eventos, por lo que el evento duró 4
@@ -29,36 +27,35 @@ x=BBZ26(:,2);
 %realiza la sig. operación 
 NA=find(isnan(x));
 
+%vamos a eliminar los valores de las horas anteriores, para que todos
+%inicen a la misma hora 
+%x=x(360000:end);
 
-%%%ahora debemos eliminar las tendencias lineales
-media=mean(x);
-x=x-media;
-x=detrend(x);
+%se transforma a unidades físicas 
+%1 m/s= 3.017*10^8
+x=x*(1/(3.01719*10^8));
+x=x*10^3;
+
+%se crea el pasabandas, en mi caso deseo eliminar las bajas frecuencias
+%debido a que me meten ruido posiblemente debido a las mareas
+
+[d]=bandpass(x,1,45,dt);
 figure (1)
-plot(t,x)
-title("senal original")
-xlabel("tiempo (s)")
-ylabel("amplitud")
+plot(t,d)
+title("senal original banda ancha")
+xlabel("tiempo (hr)")
+ylabel("velocidad (mm/s)")
 
-
-
-Nx = length(x);
-w = hann(Nx);
-xw = x.*w; 
-%se realiza el calculo de la transformada de fourier y se crea el vector de
-%frecuencias
-nfft = 2^nextpow2(Nx);%Nx; 
-X = fft(xw,nfft);
-mx = abs(X).^2; 
-%se construye el vector de frecuencias
-
-frecvec=linspace(0,sps,sps*(time))';
-length(frecvec);
-fr=length(mx);
-fr=0.5*(fr);
+[Pxx,Fx] = spectrum2(d,sps);
 
 figure(2)
-plot(frecvec(2:fr),mx(2:fr),'r')
+plot(Fx, Pxx,'r')
+%podemos escoger cual es el límite en Y en el cual queremos que nos
+%grafique.
+%set(gca, 'YLim', [1 1e9])
+title('espectro de frecuencias Banda Ancha 26/08/2016')
+xlabel('frecuencia (Hz)')
+ylabel('mm^2/s')
 
 figure(3)
 %FUNCTION SPECTROGRAM
@@ -67,4 +64,5 @@ figure(3)
 %ventana, 1012, es el traslape, 2024 el num de datos a los cuales se les
 %realiza la transformada de Fourier, 100 es el sps. 
 %spectrogram(data,sizewindow,nslap,nfft,fs o sps)
-spectrogram(x,2024,1012,2024,100,'yaxis');
+spectrogram(d,1500,750,1500,sps,'yaxis');
+

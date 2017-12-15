@@ -17,12 +17,13 @@ load('26agos2016Geo.mat');
 %%% primer columna 
 t=agos26Geo(:,1);
 t=datevec(t);
-%delta de tiempo, el espacio de t que hay entre dato y dato
-dt= 0.0040;
-%muestras por segundo (sample per second) 250hz
-sps=1/0.004;  
+dt=(t(2,6));
+sps=1/dt;
+
+% el muestreo comenzó a las 9 de la noche, del 26 de agosto del 2016
+
 %vector de tiempo
-t=[0:dt:(length(t)-1)*dt]';
+t=[0:dt:(length(t)-1)*dt]'*(1/3600);
 %tiempo de muestreo 
 time=length(t)*dt;
 
@@ -37,32 +38,33 @@ x=agos26Geo(:,2);
 %realiza la sig. operación 
 %se convierten los datos a 0
 x(isnan(x))=0;
-media=mean(x);
-x=x-media;
-x=detrend(x);
+
+
+%%% tenemos los datos en cuentas, por lo que se debe de transformar a m/s
+
+% sensitivity = 22.8 V/m/sec
+% AD converter: 32 bits e 5V picco-picco
+% 1 count = 1.164153 nV
+x=x*1.164153*10^-9;
+x=x/22.8;
+x=x*10^3;
+
+%se construye el pasabandas de 10 a 120 hz
+[d]=bandpass(x,10,120,dt);
 figure (1)
-plot(t,x)
-title("senal original")
+plot(t,d)
+title("senal original geófono")
 xlabel("tiempo (s)")
-ylabel("amplitud")
+ylabel("velocidad (m/s)")
 
-Nx = length(x);
-w = hann(Nx);
-xw = x.*w; 
-%se realiza el calculo de la transformada de fourier y se crea el vector de
-%frecuencias
-nfft = 2^nextpow2(Nx);%Nx; 
-X = fft(xw,nfft);
-mx = abs(X).^2; 
-%se construye el vector de frecuencias
-
-frecvec=linspace(0,sps,sps*(time))';
-length(frecvec);
-fr=length(mx);
-fr=0.5*(fr);
+%%% se construye el espectro de frecuencias
+[Pxx,Fx] = spectrum2(d,sps);
 
 figure(2)
-plot(frecvec(2:fr),mx(2:fr),'r')
+plot(Fx,Pxx,'r')
+title('espectro de frecuencias geófono 26/08/2017')
+xlabel('frecuencia (Hz)')
+ylabel('velocidad mm^2/s')
 
 figure(3)
 %FUNCTION SPECTROGRAM
@@ -71,10 +73,9 @@ figure(3)
 %ventana, 1012, es el traslape, 2024 el num de datos a los cuales se les
 %realiza la transformada de Fourier, 100 es el sps. 
 %spectrogram(data,sizewindow,nslap,nfft,fs o sps)
-spectrogram(x,3000,1500,3000,100,'yaxis');
+spectrogram(d,3000,1500,3000,sps,'yaxis');
 
 %posiblemente se está realizando mal el muestreo, debido a que la respuesta
 %instrumental del geofono parte a partir de los 10 hz, por lo que las bajas
 %frecuencias contaminan el muestreo, es necesario eliminar las primeras
 %frecuencias 
-figure(3)
